@@ -3,116 +3,136 @@ using namespace std;
 
 namespace CEDT
 {
-    template<typename T,typename Comp = std::less<T> >
+
+    template <typename T, typename Comp = std::less<T> >
+
     class priority_queue
     {
-    protected:
-        T *mData;
-        size_t mSize;
-        size_t mCap;
-        Comp mless;
+        protected:
+            T *mData;
+            size_t mSize;
+            size_t mCap;
+            Comp mComp; // less 
 
-        void expand()
-        {
-            T *cData = new T[mCap*2]();
-            for(size_t i=0;i<mSize;i++) cData[i] = mData[i];
-            delete [] mData;
-            mData = cData;
-            mCap *= 2;
-        }
-
-        void fix_up(size_t idx) //
-        {
-            T tmpData = mData[idx];
-            size_t tmpDown = idx;
-            while (tmpDown != 0)
+            void expand(size_t cap)
             {
-                size_t tmpUp = (tmpDown-1)/2;
-                if(mData[tmpUp] > tmpData) {mData[tmpDown] = tmpData; return; }
-                else mData[tmpDown] = mData[tmpUp];
-                tmpDown = tmpUp;
+                T *cData = new T[cap*2];
+                for(size_t i=0;i<mSize;i++)
+                {
+                    cData[i] = mData[i];
+                }
+                delete [] mData;
+                mData = cData;
+                mCap = cap;
             }
-            mData[0] = tmpData;
-        }
 
-        void fix_down(size_t idx) // root;
-        {
-            size_t tmp = idx;
-            T tmpData = mData[idx];
-            // cout << tmpData;
-            while (tmp< mSize)
+            void fix_down(size_t i)
             {
-                tmp = ((tmp*2)+1);//go to left;
-                if(tmp + 1 < mSize && mData[tmp+1] > mData[tmp] ) tmp++ ;// if have right and right is greater;
-                if(mData[tmp] < tmpData) break;
-                else mData[(tmp-1)/2] = mData[tmp];
+                T tmp = mData[i];
+                size_t c;
+                while ( (c = (i*2) +1)  < mSize)// look for left first
+                {
+                    if(c+1 < mSize && mComp(mData[c],mData[c+1]) ) c++; // find max node
+                    if(mComp(mData[c],tmp)) break; // if max node < tmp data == you fond the place where it should belongggg
+                    mData[i] = mData[c]; // move on
+                    i =  c; //move on
+                }
+                mData[i] = tmp; // place data here
             }
-            mData[tmp] = tmpData;
-        }
 
-    public:
+            void fix_up(size_t ind)
+            {
+                int tmp = mData[ind];
+                size_t node = ind; 
+                while (node  > 0)
+                {
+                   node = (node-1)/2;
+                   if( mComp(mData[node], tmp) ) break;
+                   mData[ind] = mData[node]; 
+                   ind = node;// ind = lower //  node = upper;
+                }
+                mData[node]  = tmp; 
+            }
 
+        public:
+            priority_queue(const Comp &c = Comp()) : mData(new T[1] () ) , mSize(0), mCap(1), mComp(c) {};// why do we ue &c = comp()
 
-        priority_queue(const Comp &c = Comp()) : mData(new T[1]() ),mSize(0),mCap(1) {} 
-        priority_queue(const priority_queue<T, Comp>&pq,const Comp &c = Comp()) : mData(new T[pq.mCap]() ), mSize(pq.mSize),mCap(pq.mCap) 
-        {
-            for(size_t i=0;i<pq.mSize;i++) mData[i] = pq.mData[i];
-        }
-        ~priority_queue(){delete [] mData;};
+            
+            priority_queue(priority_queue<T> &a) 
+            {
+                mData = new T[a.mSize]();
+                mSize = a.mSize;
+                mCap = a.mSize;
+                mComp = a.mComp;
+                for(int i=0;i<a.size();i++) mData[i] = a.mData[i];
+                for(int i=(a.mSize/2)-1;i<0;i++) fix_down(i);
+            }
 
-
-         priority_queue<T, Comp>& operator=(priority_queue<T, Comp> other) {
-            swap(mData, other.mData);
-            swap(mSize, other.mSize);
-            swap(mCap, other.mCap);
-            return *this;
-        }
+            ~priority_queue( ) {delete [] mData;}
         
-        void push(T data)
-        {
-            if(mSize > mCap) expand();
-            mData[mSize] = data;
-            fix_up(mSize);
-            mSize++;
-        }
 
-        void pop()
-        {
-            --mSize;
-            mData[0] = mData[mSize-1];
-            fix_down(0);
-        }
-        
-        size_t top()
-        {
-            return mData[0];
-        }
+            void push(T inp)
+            {
+                mSize++;
+                if(mSize > mCap)expand(mSize);
+                mData[mSize-1] = inp;
+                fix_up(mSize-1);
+            }
 
-        size_t size()
-        {
-            return mSize;
-        }
+             void pop()
+            {
+                mSize--;
+                mData[0] = mData[mSize-1];
+                fix_down(0);
+            }
 
-        bool empty()
-        {
-            if(mSize == 0) return 1;
-            else {return 0;}
-        }
+
+            size_t size()
+            {
+               return mSize;
+            }
+
+            bool empty()
+            {
+                if(mSize == 0) return 0;
+                else return 1;
+            }
+
+            T top()
+            {
+                return mData[0];
+            }
+
+
+            priority_queue<T> &operator=(priority_queue<T> &a)
+            {
+                delete [] mData;
+                mData = new T[a.mSize]();
+                mSize = a.mSize;
+                mCap = a.mSize;
+                mComp = a.mComp;
+                for(int i=0;i<a.size();i++) mData[i] = a.mData[i];
+                for(int i=(a.mSize/2)-1;i<0;i++) fix_down(i);
+                return *this;
+            }
     };
- 
+    
+   
     
 }
 
+
 int main()
 {
-    CEDT:: priority_queue<int> pq,pq1;
-    pq.push(99);
-    pq.push(102);
-    pq.push(43);
-    pq.push(35);
-    pq.push(42);
-    cout << pq.top() << "\n";
+    CEDT :: priority_queue<int> pq,pq1;
+    pq.push(58);
+    pq.push(69);
+    pq.push(60);
+    pq.push(29);
+    pq.push(45);
+    pq.push(30);
     pq.pop();
     pq1 = pq;
-    cout << "\n" << pq1.top();
+    cout << pq1.top();
+    
 }
